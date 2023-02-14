@@ -47,12 +47,6 @@ func_template_get(){
 }
 
 
-func_configure_get(){
-    echo foo
-}
-func_configure_remove(){
-    echo foo
-}
 func_configure_add(){
     read -p 'PROFILE NAME: ' PROFILE
     read -p 'NEWRELIC Access Key: ' ACCES_KEY
