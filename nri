@@ -1,0 +1,199 @@
+#!/bin/bash
+MODULE=$1
+ACTION=$2
+RESOURCE=$3
+PROFILE=$4
+
+func_integration_install(){
+    if [ -z $RESOURCE ]; then
+        echo "To see help text, you can run:"
+        echo ""
+        echo "       nri help"
+        echo "       nri ?"
+        echo ""
+        echo "usage: nri integration install <integrator>"
+    else
+        echo "Instaling integration $RESOURCE..."
+        sudo wget -q https://nri-integration.s3.amazonaws.com/integration/$RESOURCE
+        sudo mv $RESOURCE /var/db/newrelic-infra/newrelic-integrations/bin/$RESOURCE -f 2> /dev/null
+        if [ -e "/var/db/newrelic-infra/newrelic-integrations/bin/$RESOURCE" ] ; then
+            echo "Integration $RESOURCE instaled!"
+            echo "Important: Restart the  newrelic_infrastructure_agent service!"
+        else
+            echo "Integrator \"$RESOURCE\" do not exist!"
+        fi
+    fi
+}
+
+func_template_get(){
+    if [ -z $RESOURCE ]; then
+        echo "To see help text, you can run:"
+        echo ""
+        echo "       nri help"
+        echo "       nri ?"
+        echo ""
+        echo "usage: nri template get <template>"
+    else
+        sudo wget -q https://nri-integration.s3.amazonaws.com/templates/$RESOURCE.yaml
+        sudo mv $RESOURCE.yaml /etc/newrelic-infra/integrations.d/$RESOURCE.yaml -f 2> /dev/null
+        if [ -e "/etc/newrelic-infra/integrations.d/$RESOURCE.yaml" ] ; then
+            echo "Template $RESOURCE.yaml instaled in /etc/newrelic-infra/integrations.d"
+            echo "Important: After editing the template, restart the  newrelic_infrastructure_agent service!"
+        else
+            echo "Template \"$RESOURCE\" do not exist!"
+        fi
+    fi
+
+}
+
+
+func_configure_get(){
+    echo foo
+}
+func_configure_remove(){
+    echo foo
+}
+func_configure_add(){
+    read -p 'PROFILE NAME: ' PROFILE
+    read -p 'NEWRELIC Access Key: ' ACCES_KEY
+    if [ -e ~/.nri/credentials ] ; then
+        echo "[$PROFILE]" >> ~/.nri/credentials
+        echo "Access_Key: $ACCES_KEY" >> ~/.nri/credentials
+        echo "" >> ~/.nri/credentials
+        
+    else
+        mkdir ~/.nri 2> /dev/null
+        touch ~/.nri/credentials
+        echo "[$PROFILE]" >> ~/.nri/credentials
+        echo "Access_Key: $ACCES_KEY" >> ~/.nri/credentials
+        echo "" >> ~/.nri/credentials
+        
+    fi
+}
+func_configure_list(){
+    echo "      Name                    Value"
+    echo "      ----                    -----"
+    for i in `cat ~/.nri/credentials | grep -A 1 "\[" | sed 's/\]//' | sed 's/\[//' | sed 's/Access_Key: /;/' | tr -d '\n' | sed 's/--/\n/'`; do echo "      `echo $i | awk -F ";" '{print $1}'`                 `echo $i | awk -F ";" '{print "****"substr($0,length,1)}'`"; done
+}
+
+func_dash_list(){
+    PFL=`grep -A1 "\[$PROFILE\]" ~/.nri/credentials | grep "Access_Key:" | sed "s/Access_Key: //"`
+    echo "GUID"
+    for i in `curl -s https://api.newrelic.com/graphql   -H 'Content-Type: application/json'   -H 'API-Key: '$PFL''   --data-binary '{"query":"{\n  actor {\n    entitySearch(queryBuilder: {type: DASHBOARD}) {\n      results {\n        entities {\n          ... on DashboardEntityOutline {\n            guid\n            name\n            accountId\n          }\n        }\n      }\n    }\n  }\n}\n", "variables":""}' | jq '.data | .actor | .entitySearch | .results | .entities | .[].guid'`; do echo $i | sed 's/"//g'; done
+}
+
+func_dash_add(){
+    echo "foo"
+}
+
+
+if [ -z $MODULE ]; then
+    echo "To see help text, you can run:"
+    echo ""
+    echo "       nri help"
+    echo "       nri ?"    
+
+###Integration
+elif [ $MODULE = "integration" ]; then
+    if [ $ACTION = "?" ]; then
+        echo "To see help text, you can run:"
+        echo ""
+        echo "       nri help"
+        echo "       nri ?"
+        echo ""
+        echo "list      | install"
+
+    elif [ -z $ACTION ]; then
+        echo "To see help text, you can run:"
+        echo ""
+        echo "       nri help"
+        echo "       nri ?"   
+        echo ""
+        echo "nri: error: too few argument"
+
+    elif [ $ACTION = "list" ]; then
+        for i in `curl https://nri-integration.s3.amazonaws.com/list_integrations 2> /dev/null`; do echo "- $i"; done
+    elif [ $ACTION = "install" ]; then
+        func_integration_install
+    fi
+
+###Template
+elif [ $MODULE = "template" ]; then
+    if [ $ACTION = "?" ]; then
+        echo "To see help text, you can run:"
+        echo ""
+        echo "       nri help"
+        echo "       nri ?"
+        echo ""
+        echo "list      | get"
+
+    elif [ -z $ACTION ]; then
+        echo "To see help text, you can run:"
+        echo ""
+        echo "       nri help"
+        echo "       nri ?"   
+        echo ""
+        echo "nri: error: too few argument"
+
+    elif [ $ACTION = "list" ]; then
+        list_array=("nri-flex" "nri-mysql" "nri-jmx")
+        for i in ${list_array[@]}; do echo "- $i"; done
+    elif [ $ACTION = "get" ]; then
+        func_template_get
+    fi
+
+###Configure
+elif [ $MODULE = "configure" ]; then
+    if [ $ACTION = "?" ]; then
+        echo "To see help text, you can run:"
+        echo ""
+        echo "       nri help"
+        echo "       nri ?"
+        echo ""
+        echo "list      | get"
+        echo "add       | remove"
+
+    elif [ -z $ACTION ]; then
+        func_configure_add
+    
+    elif [ $ACTION = "add" ]; then
+        func_configure_add
+
+    elif [ $ACTION = "list" ]; then
+        func_configure_list
+    fi
+
+###Dashboard
+elif [ $MODULE = "dash" ]; then
+    if [ $ACTION = "?" ]; then
+        echo "To see help text, you can run:"
+        echo ""
+        echo "       nri help"
+        echo "       nri ?"
+        echo ""
+        echo "list      | get"
+
+    elif [ -z $ACTION ]; then
+        echo "To see help text, you can run:"
+        echo ""
+        echo "       nri help"
+        echo "       nri ?"   
+        echo ""
+        echo "nri: error: too few argument"
+    
+    elif [ $ACTION = "list" ]; then
+        func_dash_list
+    
+    elif [ $ACTION = "add" ]; then
+        func_dash_get
+    fi
+
+else
+    echo "To see help text, you can run:"
+        echo ""
+        echo "       nri help"
+        echo "       nri ?"   
+        echo ""
+    echo "integration |  template"
+    echo "dash        |  configure"
+fi
