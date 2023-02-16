@@ -14,8 +14,8 @@ func_integration_install(){
         echo "usage: nri integration install <integrator>"
     else
         echo "Instaling integration $RESOURCE..."
-        sudo wget -q https://nri-integration.s3.amazonaws.com/integration/$RESOURCE
-        sudo mv $RESOURCE /var/db/newrelic-infra/newrelic-integrations/bin/$RESOURCE -f 2> /dev/null
+        wget -q https://nri-integration.s3.amazonaws.com/integration/$RESOURCE
+        mv $RESOURCE /var/db/newrelic-infra/newrelic-integrations/bin/$RESOURCE -f 2> /dev/null
         if [ -e "/var/db/newrelic-infra/newrelic-integrations/bin/$RESOURCE" ] ; then
             echo "Integration $RESOURCE instaled!"
             echo "Important: Restart the  newrelic_infrastructure_agent service!"
@@ -34,8 +34,8 @@ func_template_get(){
         echo ""
         echo "usage: nri template get <template>"
     else
-        sudo wget -q https://nri-integration.s3.amazonaws.com/templates/$RESOURCE.yaml
-        sudo mv $RESOURCE.yaml /etc/newrelic-infra/integrations.d/$RESOURCE.yaml -f 2> /dev/null
+        wget -q https://nri-integration.s3.amazonaws.com/templates/$RESOURCE.yaml
+        mv $RESOURCE.yaml /etc/newrelic-infra/integrations.d/$RESOURCE.yaml -f 2> /dev/null
         if [ -e "/etc/newrelic-infra/integrations.d/$RESOURCE.yaml" ] ; then
             echo "Template $RESOURCE.yaml instaled in /etc/newrelic-infra/integrations.d"
             echo "Important: After editing the template, restart the  newrelic_infrastructure_agent service!"
